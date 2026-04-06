@@ -233,10 +233,17 @@ services:
       GF_AUTH_GENERIC_OAUTH_TOKEN_URL: "http://keycloak:8080/realms/enterprise/protocol/openid-connect/token"
       GF_AUTH_GENERIC_OAUTH_API_URL: "http://keycloak:8080/realms/enterprise/protocol/openid-connect/userinfo"
       GF_AUTH_GENERIC_OAUTH_TLS_SKIP_VERIFY_INSECURE: "true"
+      # Role mapping: JMESPath against token — iam-admin→Admin, compliance-admin→Editor, else Viewer
+      GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_PATH: "contains(roles[*], 'iam-admin') && 'Admin' || contains(roles[*], 'compliance-admin') && 'Editor' || 'Viewer'"
+      GF_AUTH_GENERIC_OAUTH_ROLE_ATTRIBUTE_STRICT: "true"
+      GF_AUTH_GENERIC_OAUTH_ALLOW_ASSIGN_GRAFANA_ADMIN: "true"
+      GF_AUTH_GENERIC_OAUTH_AUTO_LOGIN: "false"
       GF_SECURITY_COOKIE_SECURE: "true"
       GF_SECURITY_STRICT_TRANSPORT_SECURITY: "true"
       GF_SECURITY_CONTENT_SECURITY_POLICY: "true"
       GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_AUTO_ASSIGN_ORG: "true"
+      GF_USERS_AUTO_ASSIGN_ORG_ROLE: "Viewer"
     volumes:
       - grafana-data:/var/lib/grafana
     networks:
@@ -260,7 +267,12 @@ services:
       GITEA__server__ROOT_URL: "https://gitea.iam-lab.local:3444/"
       GITEA__security__INSTALL_LOCK: "true"
       GITEA__service__DISABLE_REGISTRATION: "true"
+      GITEA__service__ALLOW_ONLY_EXTERNAL_REGISTRATION: "false"
       GITEA__openid__ENABLE_OPENID_SIGNIN: "true"
+      GITEA__oauth2_client__ENABLE_AUTO_REGISTRATION: "true"
+      GITEA__oauth2_client__USERNAME: "preferred_username"
+      GITEA__oauth2_client__UPDATE_AVATAR: "true"
+      GITEA__oauth2_client__ACCOUNT_LINKING: "auto"
     volumes:
       - gitea-data:/data
     networks:
