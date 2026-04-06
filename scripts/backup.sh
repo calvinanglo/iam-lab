@@ -4,6 +4,8 @@
 
 set -euo pipefail
 
+export PATH="$PATH:/c/Program Files/Docker/Docker/resources/bin:/usr/local/bin:/usr/bin"
+
 BACKUP_DIR="$(cd "$(dirname "$0")/.." && pwd)/backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_PATH="${BACKUP_DIR}/${TIMESTAMP}"
