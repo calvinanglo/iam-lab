@@ -54,7 +54,7 @@ cn: John Smith
 sn: Smith
 givenName: John
 mail: jsmith@rbclab.local
-department: Trading
+ou: Trading
 title: Senior Trader
 uidNumber: 1001
 gidNumber: 1001
@@ -70,7 +70,7 @@ cn: Alice Lee
 sn: Lee
 givenName: Alice
 mail: alee@rbclab.local
-department: Risk
+ou: Risk
 title: Risk Analyst
 uidNumber: 1002
 gidNumber: 1002
@@ -86,7 +86,7 @@ cn: Michael Chen
 sn: Chen
 givenName: Michael
 mail: mchen@rbclab.local
-department: Compliance
+ou: Compliance
 title: Compliance Administrator
 uidNumber: 1003
 gidNumber: 1003
@@ -102,7 +102,7 @@ cn: Bina Patel
 sn: Patel
 givenName: Bina
 mail: bpatel@rbclab.local
-department: IT Support
+ou: IT Support
 title: Help Desk Analyst
 uidNumber: 1004
 gidNumber: 1004
