@@ -1,0 +1,6 @@
+.env
+certs/*.key
+certs/*.csr
+certs/*.srl
+backups/
+*.log

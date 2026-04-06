@@ -1,0 +1,131 @@
+# init-ldap.ldif
+# Bootstrap LDAP directory with OU structure and sample users
+# Apply with: ldapadd -x -H ldap://localhost:389 -D "cn=admin,dc=rbclab,dc=local" -W -f init-ldap.ldif
+
+# Organizational Units
+dn: ou=users,dc=rbclab,dc=local
+objectClass: organizationalUnit
+ou: users
+
+dn: ou=groups,dc=rbclab,dc=local
+objectClass: organizationalUnit
+ou: groups
+
+dn: ou=service-accounts,dc=rbclab,dc=local
+objectClass: organizationalUnit
+ou: service-accounts
+
+# ── Groups ──────────────────────────────────────────────────────────────────
+
+dn: cn=traders,ou=groups,dc=rbclab,dc=local
+objectClass: groupOfNames
+cn: traders
+member: uid=jsmith,ou=users,dc=rbclab,dc=local
+
+dn: cn=risk-analysts,ou=groups,dc=rbclab,dc=local
+objectClass: groupOfNames
+cn: risk-analysts
+member: uid=alee,ou=users,dc=rbclab,dc=local
+
+dn: cn=compliance-admins,ou=groups,dc=rbclab,dc=local
+objectClass: groupOfNames
+cn: compliance-admins
+member: uid=mchen,ou=users,dc=rbclab,dc=local
+
+dn: cn=helpdesk,ou=groups,dc=rbclab,dc=local
+objectClass: groupOfNames
+cn: helpdesk
+member: uid=bpatel,ou=users,dc=rbclab,dc=local
+
+dn: cn=iam-admins,ou=groups,dc=rbclab,dc=local
+objectClass: groupOfNames
+cn: iam-admins
+member: uid=svc-iam,ou=service-accounts,dc=rbclab,dc=local
+
+# ── Sample Users ─────────────────────────────────────────────────────────────
+# Passwords set to "ChangeMe123!" — must be changed on first login
+# Generate hashed passwords with: slappasswd -s "YourPassword"
+
+dn: uid=jsmith,ou=users,dc=rbclab,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: jsmith
+cn: John Smith
+sn: Smith
+givenName: John
+mail: jsmith@rbclab.local
+department: Trading
+title: Senior Trader
+uidNumber: 1001
+gidNumber: 1001
+homeDirectory: /home/jsmith
+userPassword: {SSHA}placeholder_run_slappasswd
+loginShell: /bin/bash
+
+dn: uid=alee,ou=users,dc=rbclab,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: alee
+cn: Alice Lee
+sn: Lee
+givenName: Alice
+mail: alee@rbclab.local
+department: Risk
+title: Risk Analyst
+uidNumber: 1002
+gidNumber: 1002
+homeDirectory: /home/alee
+userPassword: {SSHA}placeholder_run_slappasswd
+loginShell: /bin/bash
+
+dn: uid=mchen,ou=users,dc=rbclab,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: mchen
+cn: Michael Chen
+sn: Chen
+givenName: Michael
+mail: mchen@rbclab.local
+department: Compliance
+title: Compliance Administrator
+uidNumber: 1003
+gidNumber: 1003
+homeDirectory: /home/mchen
+userPassword: {SSHA}placeholder_run_slappasswd
+loginShell: /bin/bash
+
+dn: uid=bpatel,ou=users,dc=rbclab,dc=local
+objectClass: inetOrgPerson
+objectClass: posixAccount
+uid: bpatel
+cn: Bina Patel
+sn: Patel
+givenName: Bina
+mail: bpatel@rbclab.local
+department: IT Support
+title: Help Desk Analyst
+uidNumber: 1004
+gidNumber: 1004
+homeDirectory: /home/bpatel
+userPassword: {SSHA}placeholder_run_slappasswd
+loginShell: /bin/bash
+
+# ── Service Accounts ─────────────────────────────────────────────────────────
+
+dn: uid=svc-keycloak,ou=service-accounts,dc=rbclab,dc=local
+objectClass: inetOrgPerson
+uid: svc-keycloak
+cn: Keycloak Service Account
+sn: ServiceAccount
+mail: svc-keycloak@rbclab.local
+description: Read-only bind account for Keycloak LDAP federation
+userPassword: {SSHA}placeholder_run_slappasswd
+
+dn: uid=svc-iam,ou=service-accounts,dc=rbclab,dc=local
+objectClass: inetOrgPerson
+uid: svc-iam
+cn: IAM Automation Service Account
+sn: ServiceAccount
+mail: svc-iam@rbclab.local
+description: Service account for lifecycle automation scripts
+userPassword: {SSHA}placeholder_run_slappasswd
