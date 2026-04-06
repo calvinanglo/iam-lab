@@ -15,10 +15,10 @@ scrape_configs:
         refresh_interval: 5s
     relabel_configs:
       - source_labels: ['__meta_docker_container_name']
-        regex: '/(iam-lab-.*)'
+        regex: '/(?:iam-lab-|iam-)(.*)'
         target_label: container
       - source_labels: ['__meta_docker_container_name']
-        regex: '/(iam-lab-keycloak-.*|iam-lab-openldap-.*|iam-lab-nginx-.*)'
+        regex: '/(?:iam-lab-|iam-)(?:keycloak|openldap|nginx).*'
         action: keep
     pipeline_stages:
       - match:

@@ -246,6 +246,8 @@ services:
       GF_USERS_AUTO_ASSIGN_ORG_ROLE: "Viewer"
     volumes:
       - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
     networks:
       - iam-frontend
       - iam-backend

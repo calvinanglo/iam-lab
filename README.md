@@ -9,13 +9,15 @@
 | Competency | Evidence |
 |---|---|
 | **Enterprise SSO** | Keycloak IdP with OIDC (Grafana, Gitea) and SAML 2.0 (Nextcloud) |
-| **Directory Services** | OpenLDAP federation with Keycloak; OU hierarchy; 4 personas + 2 service accounts |
-| **MFA Enforcement** | TOTP required action enforced on all users via Keycloak Required Actions |
+| **Directory Services** | OpenLDAP federation with Keycloak; OU hierarchy; group-ldap-mapper syncs 5 groups → realm roles |
+| **MFA Enforcement** | TOTP (Required Action) + WebAuthn/FIDO2 as optional second factor; KC26 correct pattern |
 | **RBAC** | 5 realm roles (trader, risk-analyst, compliance-admin, helpdesk, iam-admin) mapped to app roles |
+| **LDAP Group Federation** | LDAP groups → Keycloak groups → realm roles → token claims; full chain verified end-to-end |
 | **IGA Automation** | Python Joiner/Mover/Leaver lifecycle CLI against Keycloak Admin API with structured audit log |
 | **Secrets Management** | TLS 1.3 only, HSTS preload, CSP headers; all secrets in `.env` outside git |
 | **Network Segmentation** | `iam-backend` internal network isolates DB/LDAP; `iam-frontend` for SP traffic |
-| **Observability** | Loki + Promtail log aggregation; Grafana dashboards; structured JSON event logging |
+| **Observability** | Loki + Promtail log aggregation; Grafana IAM ops dashboard (login rate, failure rate, MFA enrollment) |
+| **Security Assessment** | Trivy CVE scan across all 10 images; P1/P2/P3 remediation roadmap in `docs/security/` |
 | **Incident Response** | 5 ITIL-aligned playbooks (P1–P3) covering mass login failures, MFA degradation, SSO outage |
 | **Production Ops** | healthcheck.sh (7 assertions), backup/restore scripts, resource headroom alerting |
 
@@ -65,7 +67,8 @@
 |---|---|
 | Realm | `enterprise` |
 | Browser flow | `browser` (built-in, Conditional OTP) |
-| MFA enforcement | CONFIGURE_TOTP required action on all users |
+| MFA enforcement | CONFIGURE_TOTP required action on all users (enforced on first login) |
+| WebAuthn/FIDO2 | `webauthn-register` action enabled; rpId `keycloak.iam-lab.local`; ES256/RS256 |
 | Admin account | `iam-superadmin` (permanent, bootstrap admin deleted) |
 
 ### LDAP Federation
@@ -97,6 +100,20 @@
 | `trader` | Viewer | Trading systems + market data |
 | `risk-analyst` | Viewer | Risk reporting + analytics |
 | `helpdesk` | Viewer | User support operations |
+
+### LDAP Group Federation
+
+Groups in `ou=groups,dc=rbclab,dc=local` are synced into Keycloak via `group-ldap-mapper` and mapped to realm roles:
+
+| LDAP Group | Keycloak Group | Realm Role |
+|---|---|---|
+| `cn=traders` | `traders` | `trader` |
+| `cn=risk-analysts` | `risk-analysts` | `risk-analyst` |
+| `cn=compliance-admins` | `compliance-admins` | `compliance-admin` |
+| `cn=helpdesk` | `helpdesk` | `helpdesk` |
+| `cn=iam-admins` | `iam-admins` | `iam-admin` |
+
+Role claim flows: LDAP membership → Keycloak group → group-to-role mapping → `roles` claim in OIDC token / `Role` attribute in SAML assertion.
 
 ### SSO Clients
 
@@ -190,9 +207,16 @@ All actions are written to `iam_audit.log`:
 
 ## Observability
 
-- **Loki** collects structured logs from all containers via Promtail
-- **Grafana** has Loki as a datasource — query `{container="iam-keycloak-1"}` for auth events
-- Keycloak emits `LOGIN`, `LOGIN_ERROR`, `LOGOUT` events queryable in Admin → Events
+- **Loki** collects structured logs from all containers via Promtail (Docker socket SD)
+- **Grafana IAM Operations dashboard** (`grafana/dashboards/iam-operations.json`) — provisioned automatically on startup:
+  - Successful login / failure / MFA enrollment / logout stat panels
+  - Auth events over time (timeseries, 30s refresh)
+  - Login failure rate panel for brute-force spike detection
+  - Live Keycloak event stream (log panel)
+  - MFA & privileged admin operation trends
+- Keycloak emits `LOGIN`, `LOGIN_ERROR`, `LOGOUT`, `ADMIN_*` events queryable via:
+  - Grafana → IAM Operations dashboard
+  - Keycloak Admin → Realm → Events
 
 ---
 
@@ -219,6 +243,13 @@ iam-lab/
 ├── nginx/nginx.conf            # TLS termination, rate-limiting, security headers
 ├── certs/                      # TLS certs (ca.crt, server.crt committed; keys excluded)
 ├── ldap/init-ldap.ldif         # OU structure + 4 user personas + 2 service accounts
+├── grafana/
+│   ├── provisioning/
+│   │   ├── datasources/loki.yml        # Loki datasource auto-provisioned
+│   │   └── dashboards/dashboards.yml   # Dashboard provider config
+│   └── dashboards/iam-operations.json  # IAM ops dashboard (login rate, failures, MFA)
+├── monitoring/
+│   └── promtail-config.yml     # Docker SD log scraping → Loki
 ├── scripts/
 │   ├── iam_lifecycle.py        # Joiner/Mover/Leaver CLI (Keycloak Admin API)
 │   ├── healthcheck.sh          # 7-assertion production readiness check
@@ -226,7 +257,9 @@ iam-lab/
 │   └── restore.sh              # Point-in-time restore
 └── docs/
     ├── runbooks/               # Keycloak realm setup, LDAP federation procedures
-    └── incident-playbooks/     # P1–P3 ITIL response procedures
+    ├── incident-playbooks/     # P1–P3 ITIL response procedures
+    └── security/
+        └── trivy-scan-report.md  # CVE findings + remediation roadmap for all images
 ```
 
 ---
@@ -244,3 +277,9 @@ Keycloak 26 introduced a regression where `ConditionalUserConfiguredAuthenticato
 
 **Why Python for IGA automation instead of shell scripts?**
 The Keycloak Admin REST API requires structured JSON, retry logic, and audit logging. Python with `requests` provides a maintainable, testable foundation that mirrors real IGA tool integrations (SailPoint, Saviynt).
+
+**Why WebAuthn as optional rather than mandatory alongside TOTP?**
+TOTP is the default Required Action enforced on all users at first login. WebAuthn (`webauthn-register`) is opt-in because FIDO2 requires physical authenticator hardware that lab users may not have. In production, WebAuthn would be promoted to mandatory for privileged accounts (iam-admin, compliance-admin) once hardware token inventory is confirmed.
+
+**Why provision Grafana dashboards as code rather than UI-built?**
+Dashboard-as-code (`grafana/dashboards/*.json` + provisioning YAML) survives container rebuilds without volume state, and puts monitoring configuration in version control alongside the stack it monitors.
