@@ -40,7 +40,36 @@
     "enabledRequiredActions": [
       "CONFIGURE_TOTP",
       "UPDATE_PASSWORD",
-      "webauthn-register"
+      "webauthn-register",
+      "webauthn-register-passwordless"
+    ]
+  },
+
+  "stepUpAuth": {
+    "description": "ACR-to-LoA mapping enables step-up authentication. Clients request an ACR level; KC re-challenges if the session LoA is below the required level.",
+    "acrToLoaMap": {
+      "silver": 1,
+      "gold": 2
+    },
+    "clientAcrRequirements": {
+      "grafana": "gold (LoA 2) — password + MFA always required; re-challenges existing password-only sessions",
+      "gitea": "silver (LoA 1) — password sufficient; no MFA re-challenge within session",
+      "nextcloud": "n/a — SAML clients use RequestedAuthnContext instead of ACR"
+    }
+  },
+
+  "passwordlessFlow": {
+    "flowAlias": "passwordless-browser",
+    "description": "Copy of browser flow with Username Password Form and Conditional OTP disabled; WebAuthn Passwordless Authenticator set to REQUIRED.",
+    "clientBindings": {
+      "gitea": "authenticationFlowBindingOverrides.browser = passwordless-browser flow ID"
+    },
+    "enrollmentAction": "webauthn-register-passwordless (enabled=true, defaultAction=false)",
+    "demoUsers": ["jsmith", "alee"],
+    "authenticatorChain": [
+      "Cookie [ALTERNATIVE]",
+      "Identity Provider Redirector [ALTERNATIVE]",
+      "WebAuthn Passwordless Authenticator [REQUIRED]"
     ]
   },
 
@@ -177,8 +206,10 @@
       "webOrigins": ["https://grafana.iam-lab.local:3443"],
       "clientSecret": "${GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET}",
       "attributes": {
-        "pkce.code.challenge.method": ""
+        "pkce.code.challenge.method": "",
+        "default.acr.values": "gold"
       },
+      "_note": "gold ACR = LoA 2 = password + MFA required. Re-challenges password-only sessions.",
       "protocolMappers": [
         {
           "name": "realm-roles",
@@ -217,8 +248,13 @@
       "webOrigins": ["https://gitea.iam-lab.local:3444"],
       "clientSecret": "${GITEA_OAUTH_CLIENT_SECRET}",
       "attributes": {
-        "pkce.code.challenge.method": ""
+        "pkce.code.challenge.method": "",
+        "default.acr.values": "silver"
       },
+      "authenticationFlowBindingOverrides": {
+        "browser": "passwordless-browser"
+      },
+      "_note": "silver ACR = LoA 1 = password only. passwordless-browser flow bound so Gitea logins use WebAuthn instead of password.",
       "protocolMappers": [
         {
           "name": "realm-roles",

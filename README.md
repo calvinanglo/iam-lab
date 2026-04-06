@@ -10,8 +10,9 @@
 |---|---|
 | **Enterprise SSO** | Keycloak IdP with OIDC (Grafana, Gitea) and SAML 2.0 (Nextcloud) |
 | **Directory Services** | OpenLDAP federation with Keycloak; OU hierarchy; group-ldap-mapper syncs 5 groups → realm roles |
-| **MFA Enforcement** | TOTP (Required Action) + WebAuthn/FIDO2 as optional second factor; KC26 correct pattern |
-| **RBAC** | 5 realm roles (trader, risk-analyst, compliance-admin, helpdesk, iam-admin) mapped to app roles |
+| **MFA + Step-Up Auth** | TOTP enforced (Required Action); ACR levels `silver`/`gold`; Grafana requires LoA 2 re-challenge |
+| **Passwordless FIDO2** | WebAuthn-only browser flow on Gitea; passkey enrollment via `webauthn-register-passwordless` |
+| **RBAC + ABAC** | 5 realm roles federated from LDAP groups; Grafana role mapping via JMESPath on token claims |
 | **LDAP Group Federation** | LDAP groups → Keycloak groups → realm roles → token claims; full chain verified end-to-end |
 | **IGA Automation** | Joiner/Mover/Leaver + Access Certification + JIT Privileged Access CLI against Keycloak Admin API |
 | **Secrets Management** | TLS 1.3 only, HSTS preload, CSP headers; all secrets in `.env` outside git |
@@ -22,6 +23,20 @@
 | **CI/CD** | GitHub Actions: config validation, Trivy scan with SARIF upload, stack smoke test, IGA lint |
 | **Incident Response** | 5 ITIL-aligned playbooks (P1–P3) covering mass login failures, MFA degradation, SSO outage |
 | **Production Ops** | healthcheck.sh, backup/restore scripts; realm config exported as code (`keycloak/`) |
+
+---
+
+## Projects
+
+Five structured projects, each with full configuration detail, verification steps, and design rationale:
+
+| | Project | Key Technologies | Doc |
+|---|---|---|---|
+| **P1** | SSO Federation | OIDC, SAML 2.0, LDAP, group-ldap-mapper | [P1-SSO-Federation.md](docs/projects/P1-SSO-Federation.md) |
+| **P2** | MFA & Step-Up Authentication | TOTP Required Actions, ACR/LoA levels, gold/silver tiers | [P2-MFA-StepUp.md](docs/projects/P2-MFA-StepUp.md) |
+| **P3** | Passwordless FIDO2 | WebAuthn, passkeys, custom browser flow, origin-binding | [P3-Passwordless-FIDO2.md](docs/projects/P3-Passwordless-FIDO2.md) |
+| **P4** | RBAC, ABAC & Lifecycle Automation | Realm roles, JMESPath ABAC, Joiner/Mover/Leaver, JIT PAM | [P4-RBAC-Lifecycle.md](docs/projects/P4-RBAC-Lifecycle.md) |
+| **P5** | Monitoring, Incident Response & Audit | Loki, Grafana, SIEM integration, access certification, playbooks | [P5-Monitoring-Incident-Audit.md](docs/projects/P5-Monitoring-Incident-Audit.md) |
 
 ---
 
