@@ -14,18 +14,48 @@ scrape_configs:
       - host: unix:///var/run/docker.sock
         refresh_interval: 5s
     relabel_configs:
+      # Extract clean container name from Docker label
       - source_labels: ['__meta_docker_container_name']
         regex: '/(?:iam-lab-|iam-)(.*)'
         target_label: container
-      - source_labels: ['__meta_docker_container_name']
-        regex: '/(?:iam-lab-|iam-)(?:keycloak|openldap|nginx).*'
-        action: keep
+      # Add compose service name as label
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: service
     pipeline_stages:
+      # Keycloak event parsing
       - match:
-          selector: '{container=~".*keycloak.*"}'
+          selector: '{service=~"keycloak"}'
           stages:
             - regex:
                 expression: 'type=(?P<event_type>[A-Z_]+).*realmId=(?P<realm>[a-z-]+)'
             - labels:
                 event_type:
                 realm:
+      # Nginx access log parsing
+      - match:
+          selector: '{service=~"nginx"}'
+          stages:
+            - regex:
+                expression: '^(?P<remote_addr>[\\d.]+) .* "(?P<method>[A-Z]+) (?P<path>[^ ]+) .* (?P<status>\\d{3}) '
+            - labels:
+                status:
+      # SIEM receiver event parsing
+      - match:
+          selector: '{service=~"siem-receiver"}'
+          stages:
+            - json:
+                expressions:
+                  level: level
+                  event_type: event.event_type
+                  severity: event.severity
+            - labels:
+                level:
+                severity:
+      # OpenLDAP operation parsing
+      - match:
+          selector: '{service=~"openldap"}'
+          stages:
+            - regex:
+                expression: 'conn=(?P<conn_id>\\d+) op=(?P<op_id>\\d+) (?P<ldap_op>[A-Z]+)'
+            - labels:
+                ldap_op:

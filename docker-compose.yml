@@ -61,6 +61,7 @@ services:
       --log-level=INFO
       --spi-events-listener-jboss-logging-success-level=info
       --spi-events-listener-jboss-logging-error-level=warn
+      --import-realm
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
@@ -70,6 +71,8 @@ services:
         -XX:MaxGCPauseMillis=500
         -XX:+UseStringDeduplication
         -Djava.net.preferIPv4Stack=true
+    volumes:
+      - ./keycloak/enterprise-realm-export.json:/opt/keycloak/data/import/enterprise-realm.json:ro
     restart: unless-stopped
     depends_on:
       keycloak-db:
@@ -155,6 +158,7 @@ services:
     volumes:
       - openldap-data:/var/lib/ldap
       - openldap-config:/etc/ldap/slapd.d
+      - ./ldap/init-ldap.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/init-ldap.ldif:ro
       - ./certs/server.crt:/container/service/slapd/assets/certs/server.crt
       - ./certs/server.key:/container/service/slapd/assets/certs/server.key
       - ./certs/ca.crt:/container/service/slapd/assets/certs/ca.crt
@@ -350,11 +354,8 @@ services:
       <<: *healthcheck-defaults
 
   siem-forwarder:
-    image: python:3.12-alpine
+    build: ./siem-forwarder
     restart: unless-stopped
-    command: >
-      sh -c "pip install requests -q &&
-             python3 /scripts/siem_forwarder.py"
     environment:
       KC_BASE_URL: "https://keycloak.iam-lab.local:8443"
       KC_REALM: enterprise
@@ -364,7 +365,6 @@ services:
       POLL_INTERVAL: "30"
       STATE_FILE: "/state/.siem_state.json"
     volumes:
-      - ./scripts:/scripts:ro
       - siem-forwarder-state:/state
     depends_on:
       keycloak:

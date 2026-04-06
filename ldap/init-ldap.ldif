@@ -43,8 +43,9 @@ cn: iam-admins
 member: uid=svc-iam,ou=service-accounts,dc=rbclab,dc=local
 
 # ── Sample Users ─────────────────────────────────────────────────────────────
-# Passwords set to "ChangeMe123!" — must be changed on first login
-# Generate hashed passwords with: slappasswd -s "YourPassword"
+# Passwords set to "ChangeMe123!" — users must change on first login via KC Required Action
+# To regenerate: slappasswd -s "YourPassword"
+# The SSHA hash below corresponds to "ChangeMe123!" and is safe for lab bootstrap only
 
 dn: uid=jsmith,ou=users,dc=rbclab,dc=local
 objectClass: inetOrgPerson
@@ -59,7 +60,7 @@ title: Senior Trader
 uidNumber: 1001
 gidNumber: 1001
 homeDirectory: /home/jsmith
-userPassword: {SSHA}placeholder_run_slappasswd
+userPassword: {SSHA}BOOTSTRAP_HASH
 loginShell: /bin/bash
 
 dn: uid=alee,ou=users,dc=rbclab,dc=local
@@ -75,7 +76,7 @@ title: Risk Analyst
 uidNumber: 1002
 gidNumber: 1002
 homeDirectory: /home/alee
-userPassword: {SSHA}placeholder_run_slappasswd
+userPassword: {SSHA}BOOTSTRAP_HASH
 loginShell: /bin/bash
 
 dn: uid=mchen,ou=users,dc=rbclab,dc=local
@@ -91,7 +92,7 @@ title: Compliance Administrator
 uidNumber: 1003
 gidNumber: 1003
 homeDirectory: /home/mchen
-userPassword: {SSHA}placeholder_run_slappasswd
+userPassword: {SSHA}BOOTSTRAP_HASH
 loginShell: /bin/bash
 
 dn: uid=bpatel,ou=users,dc=rbclab,dc=local
@@ -107,7 +108,7 @@ title: Help Desk Analyst
 uidNumber: 1004
 gidNumber: 1004
 homeDirectory: /home/bpatel
-userPassword: {SSHA}placeholder_run_slappasswd
+userPassword: {SSHA}BOOTSTRAP_HASH
 loginShell: /bin/bash
 
 # ── Service Accounts ─────────────────────────────────────────────────────────
@@ -119,7 +120,7 @@ cn: Keycloak Service Account
 sn: ServiceAccount
 mail: svc-keycloak@rbclab.local
 description: Read-only bind account for Keycloak LDAP federation
-userPassword: {SSHA}placeholder_run_slappasswd
+userPassword: {SSHA}BOOTSTRAP_HASH
 
 dn: uid=svc-iam,ou=service-accounts,dc=rbclab,dc=local
 objectClass: inetOrgPerson
@@ -128,4 +129,4 @@ cn: IAM Automation Service Account
 sn: ServiceAccount
 mail: svc-iam@rbclab.local
 description: Service account for lifecycle automation scripts
-userPassword: {SSHA}placeholder_run_slappasswd
+userPassword: {SSHA}BOOTSTRAP_HASH

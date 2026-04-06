@@ -1,6 +1,54 @@
+# Secrets
 .env
 certs/*.key
 certs/*.csr
 certs/*.srl
+certs/san.cnf
+
+# Backups
 backups/
+
+# Logs
 *.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Terraform
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.*
+terraform/*.tfvars
+!terraform/*.tfvars.example
+terraform/.terraform.lock.hcl
+terraform/crash.log
+
+# JIT state (ephemeral)
+.jit_grants.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Node (screenshot capture tooling)
+node_modules/
+package.json
+package-lock.json
+
+# Claude
+.claude/

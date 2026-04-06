@@ -1,0 +1,61 @@
+# docker-compose.override.yml.example
+# ══════════════════════════════════════════════════════════════════════════════
+# Development overrides — copy to docker-compose.override.yml to activate.
+# Docker Compose auto-merges this file when it exists.
+#
+#   cp docker-compose.override.yml.example docker-compose.override.yml
+#   docker compose up -d
+# ══════════════════════════════════════════════════════════════════════════════
+
+services:
+  keycloak:
+    # Debug logging for development
+    command: >
+      start
+      --hostname=${KC_HOSTNAME}
+      --hostname-strict=false
+      --proxy-headers=xforwarded
+      --http-enabled=true
+      --http-port=8080
+      --db=postgres
+      --db-url=jdbc:postgresql://keycloak-db:5432/${POSTGRES_DB}
+      --db-username=${POSTGRES_USER}
+      --db-password=${KC_DB_PASSWORD}
+      --log-level=DEBUG
+      --spi-events-listener-jboss-logging-success-level=info
+      --spi-events-listener-jboss-logging-error-level=warn
+      --import-realm
+    # Remove resource limits for dev
+    deploy:
+      resources: {}
+
+  keycloak-db:
+    # Expose Postgres for direct access during dev
+    ports:
+      - "5432:5432"
+    deploy:
+      resources: {}
+
+  openldap:
+    # Expose LDAP for direct access during dev
+    ports:
+      - "389:389"
+      - "636:636"
+    deploy:
+      resources: {}
+
+  phpldapadmin:
+    # Expose phpLDAPadmin web UI
+    ports:
+      - "8080:80"
+
+  grafana:
+    deploy:
+      resources: {}
+
+  siem-receiver:
+    # Expose SIEM receiver for local testing
+    ports:
+      - "5000:5000"
+    deploy:
+      resources: {}

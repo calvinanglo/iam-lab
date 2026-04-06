@@ -15,4 +15,4 @@ EXPOSE 5000
 HEALTHCHECK --interval=30s --timeout=5s \
   CMD wget -qO- http://localhost:5000/health || exit 1
 
-CMD ["python3", "app.py"]
+CMD ["gunicorn", "--workers", "2", "--bind", "0.0.0.0:5000", "--access-logfile", "-", "--error-logfile", "-", "app:app"]
