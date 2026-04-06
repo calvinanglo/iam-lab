@@ -50,5 +50,5 @@ node_modules/
 package.json
 package-lock.json
 
-# Claude
+# Local tooling
 .claude/

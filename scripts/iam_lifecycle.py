@@ -42,11 +42,11 @@ audit.setLevel(logging.INFO)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-KC_BASE      = os.getenv("KC_BASE_URL", "https://keycloak.iam-lab.local:8443")
-KC_REALM     = os.getenv("KC_REALM", "enterprise")
+KC_BASE = os.getenv("KC_BASE_URL", "https://keycloak.iam-lab.local:8443")
+KC_REALM = os.getenv("KC_REALM", "enterprise")
 KC_CLIENT_ID = os.getenv("KC_CLIENT_ID", "admin-cli")
-KC_USER      = os.getenv("KC_ADMIN_USER", "admin")
-KC_PASS      = os.getenv("KC_ADMIN_PASS", "")
+KC_USER = os.getenv("KC_ADMIN_USER", "admin")
+KC_PASS = os.getenv("KC_ADMIN_PASS", "")
 
 ADMIN_API = f"{KC_BASE}/admin/realms/{KC_REALM}"
 
@@ -54,6 +54,7 @@ VALID_ROLES = {"trader", "risk-analyst", "compliance-admin", "helpdesk", "iam-ad
 
 
 # ── HTTP Session ──────────────────────────────────────────────────────────────
+
 
 def _session() -> requests.Session:
     s = requests.Session()
@@ -83,6 +84,7 @@ def headers(token: str) -> dict:
 
 
 # ── User Operations ───────────────────────────────────────────────────────────
+
 
 def find_user(session: requests.Session, token: str, username: str) -> Optional[dict]:
     resp = session.get(
@@ -139,6 +141,7 @@ def logout_sessions(session: requests.Session, token: str, user_id: str):
 
 
 # ── Lifecycle Actions ─────────────────────────────────────────────────────────
+
 
 def joiner(session: requests.Session, token: str, args: argparse.Namespace):
     """Create account and assign initial role."""
@@ -377,6 +380,7 @@ def certify(session: requests.Session, token: str, args: argparse.Namespace):
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser(description="IAM Joiner/Mover/Leaver automation")

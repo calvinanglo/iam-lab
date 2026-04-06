@@ -58,11 +58,11 @@ audit.setLevel(logging.INFO)
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-KC_BASE      = os.getenv("KC_BASE_URL", "https://keycloak.iam-lab.local:8443")
-KC_REALM     = os.getenv("KC_REALM", "enterprise")
+KC_BASE = os.getenv("KC_BASE_URL", "https://keycloak.iam-lab.local:8443")
+KC_REALM = os.getenv("KC_REALM", "enterprise")
 KC_CLIENT_ID = os.getenv("KC_CLIENT_ID", "admin-cli")
-KC_USER      = os.getenv("KC_ADMIN_USER", "iam-superadmin")
-KC_PASS      = os.getenv("KC_ADMIN_PASS", "")
+KC_USER = os.getenv("KC_ADMIN_USER", "iam-superadmin")
+KC_PASS = os.getenv("KC_ADMIN_PASS", "")
 
 ADMIN_API = f"{KC_BASE}/admin/realms/{KC_REALM}"
 
@@ -76,6 +76,7 @@ MAX_DURATION_MINUTES = 480  # 8 hours hard cap
 
 
 # ── HTTP Session ──────────────────────────────────────────────────────────────
+
 
 def _session() -> requests.Session:
     s = requests.Session()
@@ -102,6 +103,7 @@ def headers(token: str) -> dict:
 
 
 # ── User / Role Helpers ───────────────────────────────────────────────────────
+
 
 def find_user(session: requests.Session, token: str, username: str) -> Optional[dict]:
     resp = session.get(
@@ -151,6 +153,7 @@ def remove_role(session: requests.Session, token: str, user_id: str, role: dict)
 
 # ── Grant State ───────────────────────────────────────────────────────────────
 
+
 def load_grants() -> list:
     if not GRANTS_FILE.exists():
         return []
@@ -172,6 +175,7 @@ def find_grant(grants: list, username: str, role: str) -> Optional[dict]:
 
 
 # ── JIT Actions ───────────────────────────────────────────────────────────────
+
 
 def elevate(session: requests.Session, token: str, args: argparse.Namespace):
     """Grant a privileged role for a limited time window."""
@@ -230,12 +234,12 @@ def elevate(session: requests.Session, token: str, args: argparse.Namespace):
         expires.isoformat(), args.reason, KC_USER,
     )
 
-    print(f"\n  Elevation granted:")
+    print("\n  Elevation granted:")
     print(f"    User     : {args.username}")
     print(f"    Role     : {args.role}")
     print(f"    Expires  : {expires.strftime('%Y-%m-%d %H:%M UTC')} ({args.duration} min)")
     print(f"    Reason   : {args.reason}")
-    print(f"\n  Run 'jit_access.py expire' or schedule it to auto-revoke at expiry.\n")
+    print("\n  Run 'jit_access.py expire' or schedule it to auto-revoke at expiry.\n")
 
 
 def revoke(session: requests.Session, token: str, args: argparse.Namespace):
@@ -344,6 +348,7 @@ def list_grants(session: requests.Session, token: str, args: argparse.Namespace)
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
+
 
 def main():
     parser = argparse.ArgumentParser(

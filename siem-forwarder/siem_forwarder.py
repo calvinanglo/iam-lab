@@ -39,13 +39,13 @@ from urllib3.util.retry import Retry
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
-KC_BASE      = os.getenv("KC_BASE_URL", "https://keycloak.iam-lab.local:8443")
-KC_REALM     = os.getenv("KC_REALM", "enterprise")
-KC_USER      = os.getenv("KC_ADMIN_USER", "iam-superadmin")
-KC_PASS      = os.getenv("KC_ADMIN_PASS", "")
-SIEM_URL     = os.getenv("SIEM_URL", "http://siem-receiver:5000")
+KC_BASE = os.getenv("KC_BASE_URL", "https://keycloak.iam-lab.local:8443")
+KC_REALM = os.getenv("KC_REALM", "enterprise")
+KC_USER = os.getenv("KC_ADMIN_USER", "iam-superadmin")
+KC_PASS = os.getenv("KC_ADMIN_PASS", "")
+SIEM_URL = os.getenv("SIEM_URL", "http://siem-receiver:5000")
 POLL_INTERVAL = int(os.getenv("POLL_INTERVAL", "30"))
-STATE_FILE   = Path(os.getenv("STATE_FILE", ".siem_state.json"))
+STATE_FILE = Path(os.getenv("STATE_FILE", ".siem_state.json"))
 
 ADMIN_API = f"{KC_BASE}/admin/realms/{KC_REALM}"
 
@@ -59,6 +59,7 @@ logging.basicConfig(
 log = logging.getLogger("siem-forwarder")
 
 # ── HTTP Clients ──────────────────────────────────────────────────────────────
+
 
 def _kc_session() -> requests.Session:
     s = requests.Session()
@@ -93,6 +94,7 @@ def kc_headers(token: str) -> dict:
 
 # ── State management ──────────────────────────────────────────────────────────
 
+
 def load_state() -> dict:
     if STATE_FILE.exists():
         try:
@@ -107,6 +109,7 @@ def save_state(state: dict):
 
 
 # ── Event fetching ────────────────────────────────────────────────────────────
+
 
 def fetch_auth_events(session: requests.Session, token: str, since_ts: int) -> list:
     """Fetch auth events newer than since_ts (milliseconds)."""
@@ -143,6 +146,7 @@ def fetch_admin_events(session: requests.Session, token: str, since_ts: int) -> 
 
 # ── Forwarding ────────────────────────────────────────────────────────────────
 
+
 def forward_events(siem: requests.Session, events: list, endpoint: str) -> int:
     """Forward events to SIEM receiver. Returns count of successfully forwarded."""
     forwarded = 0
@@ -163,6 +167,7 @@ def forward_events(siem: requests.Session, events: list, endpoint: str) -> int:
 
 
 # ── Poll loop ─────────────────────────────────────────────────────────────────
+
 
 def poll_once(kc: requests.Session, siem: requests.Session, state: dict) -> dict:
     try:

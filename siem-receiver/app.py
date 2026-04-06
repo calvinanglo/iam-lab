@@ -28,6 +28,7 @@ app = Flask(__name__)
 
 # ── Logging: structured JSON to stdout (Loki-scrape-friendly) ─────────────────
 
+
 class JSONFormatter(logging.Formatter):
     def format(self, record):
         log_entry = {
@@ -49,6 +50,7 @@ log.setLevel(logging.INFO)
 
 # Also write to an audit file for persistence
 AUDIT_FILE = os.getenv("SIEM_AUDIT_FILE", "/var/log/siem/keycloak-events.jsonl")
+
 
 def write_audit(event: dict):
     try:
@@ -148,6 +150,7 @@ def normalise_admin_event(raw: dict) -> dict:
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────
+
 
 @app.route("/health", methods=["GET"])
 def health():
