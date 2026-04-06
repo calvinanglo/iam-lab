@@ -1,0 +1,325 @@
+{
+  "_comment": "Keycloak 26.2 enterprise realm export. Generated from live stack via Admin API.",
+  "_import_note": "Import via: Keycloak Admin → Create realm → drag this file. Secrets (LDAP bind cred, client secrets) must be re-entered from .env after import.",
+
+  "realm": "enterprise",
+  "displayName": "Enterprise IAM",
+  "enabled": true,
+  "sslRequired": "external",
+
+  "tokenSettings": {
+    "accessTokenLifespan": 300,
+    "ssoSessionIdleTimeout": 1800,
+    "ssoSessionMaxLifespan": 36000,
+    "offlineSessionIdleTimeout": 2592000
+  },
+
+  "loginSettings": {
+    "registrationAllowed": false,
+    "loginWithEmailAllowed": true,
+    "duplicateEmailsAllowed": false,
+    "resetPasswordAllowed": false,
+    "editUsernameAllowed": false,
+    "bruteForceProtected": false,
+    "failureFactor": 30,
+    "maxFailureWaitSeconds": 900,
+    "waitIncrementSeconds": 60
+  },
+
+  "mfa": {
+    "defaultRequiredActions": ["CONFIGURE_TOTP"],
+    "webAuthnPolicy": {
+      "rpEntityName": "IAM Lab",
+      "rpId": "keycloak.iam-lab.local",
+      "signatureAlgorithms": ["ES256", "RS256"],
+      "attestationConveyancePreference": "indirect",
+      "requireResidentKey": "No",
+      "userVerificationRequirement": "preferred",
+      "createTimeout": 300
+    },
+    "enabledRequiredActions": [
+      "CONFIGURE_TOTP",
+      "UPDATE_PASSWORD",
+      "webauthn-register"
+    ]
+  },
+
+  "realmRoles": [
+    { "name": "trader",           "description": "Trading system access - market data and order entry" },
+    { "name": "risk-analyst",     "description": "Risk reporting and analytics access" },
+    { "name": "compliance-admin", "description": "Compliance tooling and audit log access" },
+    { "name": "helpdesk",         "description": "User support operations" },
+    { "name": "iam-admin",        "description": "Full IAM administration - realm management" }
+  ],
+
+  "ldapFederation": {
+    "name": "ldap",
+    "providerId": "ldap",
+    "enabled": true,
+    "config": {
+      "connectionUrl": "ldap://openldap:389",
+      "bindDn": "cn=readonly,dc=rbclab,dc=local",
+      "bindCredential": "${LDAP_READONLY_USER_PASSWORD}",
+      "usersDn": "ou=users,dc=rbclab,dc=local",
+      "usernameLDAPAttribute": "uid",
+      "rdnLDAPAttribute": "uid",
+      "uuidLDAPAttribute": "entryUUID",
+      "userObjectClasses": "inetOrgPerson, posixAccount",
+      "editMode": "READ_ONLY",
+      "vendor": "other",
+      "searchScope": "1",
+      "authType": "simple",
+      "pagination": true,
+      "connectionPooling": true,
+      "importEnabled": true,
+      "syncRegistrations": true,
+      "fullSyncPeriod": -1,
+      "changedSyncPeriod": -1
+    },
+    "mappers": [
+      {
+        "name": "username",
+        "providerId": "user-attribute-ldap-mapper",
+        "config": {
+          "ldap.attribute": "uid",
+          "user.model.attribute": "username",
+          "is.mandatory.in.ldap": "true"
+        }
+      },
+      {
+        "name": "first name",
+        "providerId": "user-attribute-ldap-mapper",
+        "config": {
+          "ldap.attribute": "givenName",
+          "user.model.attribute": "firstName"
+        }
+      },
+      {
+        "name": "last name",
+        "providerId": "user-attribute-ldap-mapper",
+        "config": {
+          "ldap.attribute": "sn",
+          "user.model.attribute": "lastName"
+        }
+      },
+      {
+        "name": "email",
+        "providerId": "user-attribute-ldap-mapper",
+        "config": {
+          "ldap.attribute": "mail",
+          "user.model.attribute": "email"
+        }
+      },
+      {
+        "name": "username-mapper",
+        "providerId": "user-attribute-ldap-mapper",
+        "config": {
+          "ldap.attribute": "uid",
+          "user.model.attribute": "username",
+          "read.only": "true"
+        }
+      },
+      {
+        "name": "group-mapper",
+        "providerId": "group-ldap-mapper",
+        "config": {
+          "groups.dn": "ou=groups,dc=rbclab,dc=local",
+          "group.object.classes": "groupOfNames",
+          "mode": "READ_ONLY",
+          "membership.attribute.type": "DN",
+          "membership.ldap.attribute": "member",
+          "membership.user.ldap.attribute": "uid",
+          "groups.path": "/",
+          "drop.non.existing.groups.during.sync": "false",
+          "preserve.group.inheritance": "false"
+        }
+      }
+    ]
+  },
+
+  "groups": [
+    {
+      "name": "traders",
+      "realmRoleMappings": ["trader"],
+      "ldapDn": "cn=traders,ou=groups,dc=rbclab,dc=local"
+    },
+    {
+      "name": "risk-analysts",
+      "realmRoleMappings": ["risk-analyst"],
+      "ldapDn": "cn=risk-analysts,ou=groups,dc=rbclab,dc=local"
+    },
+    {
+      "name": "compliance-admins",
+      "realmRoleMappings": ["compliance-admin"],
+      "ldapDn": "cn=compliance-admins,ou=groups,dc=rbclab,dc=local"
+    },
+    {
+      "name": "helpdesk",
+      "realmRoleMappings": ["helpdesk"],
+      "ldapDn": "cn=helpdesk,ou=groups,dc=rbclab,dc=local"
+    },
+    {
+      "name": "iam-admins",
+      "realmRoleMappings": ["iam-admin"],
+      "ldapDn": "cn=iam-admins,ou=groups,dc=rbclab,dc=local"
+    }
+  ],
+
+  "clients": [
+    {
+      "clientId": "grafana",
+      "name": "Grafana (OIDC SP)",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["https://grafana.iam-lab.local:3443/*"],
+      "webOrigins": ["https://grafana.iam-lab.local:3443"],
+      "clientSecret": "${GF_AUTH_GENERIC_OAUTH_CLIENT_SECRET}",
+      "attributes": {
+        "pkce.code.challenge.method": ""
+      },
+      "protocolMappers": [
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "email",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "config": {
+            "claim.name": "email",
+            "user.attribute": "email",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "gitea",
+      "name": "Gitea (OIDC SP)",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "redirectUris": ["https://gitea.iam-lab.local:3444/user/oauth2/keycloak/callback"],
+      "webOrigins": ["https://gitea.iam-lab.local:3444"],
+      "clientSecret": "${GITEA_OAUTH_CLIENT_SECRET}",
+      "attributes": {
+        "pkce.code.challenge.method": ""
+      },
+      "protocolMappers": [
+        {
+          "name": "realm-roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "email",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "config": {
+            "claim.name": "email",
+            "user.attribute": "email",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "https://nextcloud.iam-lab.local:8444/apps/user_saml/saml/metadata",
+      "name": "Nextcloud (SAML SP)",
+      "protocol": "saml",
+      "enabled": true,
+      "frontchannelLogout": true,
+      "redirectUris": ["https://nextcloud.iam-lab.local:8444/*"],
+      "attributes": {
+        "saml.force.post.binding": "true",
+        "saml.server.signature": "true",
+        "saml.signature.algorithm": "RSA_SHA256",
+        "saml.client.signature": "false",
+        "saml.encrypt": "false",
+        "saml.authnstatement": "true",
+        "saml.assertion.lifespan": "300",
+        "saml_idp_initiated_sso_url_name": "nextcloud",
+        "saml_assertion_consumer_url_post": "https://nextcloud.iam-lab.local:8444/apps/user_saml/saml/acs",
+        "saml_single_logout_service_url_post": "https://nextcloud.iam-lab.local:8444/apps/user_saml/saml/sls"
+      },
+      "protocolMappers": [
+        {
+          "name": "uid",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "config": {
+            "attribute.name": "uid",
+            "attribute.nameformat": "Basic",
+            "user.attribute": "username"
+          }
+        },
+        {
+          "name": "email",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "config": {
+            "attribute.name": "email",
+            "attribute.nameformat": "Basic",
+            "user.attribute": "email"
+          }
+        },
+        {
+          "name": "displayName",
+          "protocol": "saml",
+          "protocolMapper": "saml-user-property-mapper",
+          "config": {
+            "attribute.name": "displayName",
+            "attribute.nameformat": "Basic",
+            "user.attribute": "firstName"
+          }
+        }
+      ]
+    }
+  ],
+
+  "browserFlow": "browser",
+
+  "adminAccount": {
+    "username": "iam-superadmin",
+    "note": "Bootstrap admin (admin/admin) must be deleted after this account is created and verified. Password stored in .env as KEYCLOAK_SUPERADMIN_PASSWORD."
+  },
+
+  "reproductionSteps": [
+    "1. docker compose up -d",
+    "2. Wait for Keycloak health: bash scripts/healthcheck.sh",
+    "3. Log into Keycloak Admin with bootstrap credentials from .env",
+    "4. Create realm 'enterprise' and import this file as reference",
+    "5. Add LDAP federation: connectionUrl=ldap://openldap:389, bindDn from .env",
+    "6. Add group-ldap-mapper pointing to ou=groups,dc=rbclab,dc=local",
+    "7. Trigger full LDAP sync",
+    "8. Map groups to realm roles (traders→trader, risk-analysts→risk-analyst, etc.)",
+    "9. Create Grafana/Gitea OIDC clients with secrets from .env",
+    "10. Create Nextcloud SAML client with ACS URL and mappers",
+    "11. Set CONFIGURE_TOTP as default Required Action on all LDAP users",
+    "12. Enable webauthn-register Required Action (enabled=true, defaultAction=false)",
+    "13. Delete bootstrap admin; create permanent iam-superadmin",
+    "See docs/runbooks/keycloak-realm-setup.md for step-by-step detail"
+  ]
+}

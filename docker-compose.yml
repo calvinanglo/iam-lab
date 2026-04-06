@@ -328,6 +328,61 @@ services:
           memory: 128M
           cpus: "0.15"
 
+  # ═══════ SIEM INTEGRATION ═══════
+  siem-receiver:
+    build: ./siem-receiver
+    restart: unless-stopped
+    environment:
+      SIEM_PORT: "5000"
+      SIEM_AUDIT_FILE: "/var/log/siem/keycloak-events.jsonl"
+    volumes:
+      - siem-data:/var/log/siem
+    networks:
+      - iam-backend
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.15"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5000/health || exit 1"]
+      <<: *healthcheck-defaults
+
+  siem-forwarder:
+    image: python:3.12-alpine
+    restart: unless-stopped
+    command: >
+      sh -c "pip install requests -q &&
+             python3 /scripts/siem_forwarder.py"
+    environment:
+      KC_BASE_URL: "https://keycloak.iam-lab.local:8443"
+      KC_REALM: enterprise
+      KC_ADMIN_USER: ${KEYCLOAK_SUPERADMIN_USER}
+      KC_ADMIN_PASS: ${KEYCLOAK_SUPERADMIN_PASSWORD}
+      SIEM_URL: "http://siem-receiver:5000"
+      POLL_INTERVAL: "30"
+      STATE_FILE: "/state/.siem_state.json"
+    volumes:
+      - ./scripts:/scripts:ro
+      - siem-forwarder-state:/state
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      siem-receiver:
+        condition: service_healthy
+    networks:
+      - iam-frontend
+      - iam-backend
+    extra_hosts:
+      - "keycloak.iam-lab.local:host-gateway"
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.15"
+
 volumes:
   keycloak-db-data:
     name: iam-keycloak-db
@@ -343,6 +398,10 @@ volumes:
     name: iam-gitea-data
   loki-data:
     name: iam-loki-data
+  siem-data:
+    name: iam-siem-data
+  siem-forwarder-state:
+    name: iam-siem-forwarder-state
 
 networks:
   iam-frontend:

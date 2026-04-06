@@ -232,6 +232,150 @@ def report(session: requests.Session, token: str, args: argparse.Namespace):
     print(f"\nTotal: {len(users)} users\n")
 
 
+def certify(session: requests.Session, token: str, args: argparse.Namespace):
+    """
+    Access certification report — ISO 27001 / SOX access review.
+
+    Outputs a structured table of all users with their roles, account status,
+    and last login timestamp. Flags:
+      INACTIVE  — enabled account with no login in >N days
+      ORPHANED  — enabled account with no realm roles assigned
+      DISABLED  — account disabled (offboarded)
+    """
+    lookback_days = args.days
+    cutoff = datetime.now(timezone.utc).timestamp() - (lookback_days * 86400)
+
+    resp = session.get(f"{ADMIN_API}/users", params={"max": 500}, headers=headers(token))
+    resp.raise_for_status()
+    users = resp.json()
+
+    # Fetch sessions for last-login data
+    active_sessions: dict = {}
+    try:
+        sessions_resp = session.get(
+            f"{ADMIN_API}/sessions/stats",
+            headers=headers(token),
+        )
+        if sessions_resp.ok:
+            for entry in sessions_resp.json():
+                active_sessions[entry.get("realm", "")] = entry
+    except Exception:
+        pass
+
+    rows = []
+    flags_summary: dict = {"INACTIVE": 0, "ORPHANED": 0, "DISABLED": 0, "CLEAN": 0}
+
+    for u in users:
+        user_id = u["id"]
+        username = u.get("username", "")
+        email = u.get("email", "")
+        enabled = u.get("enabled", False)
+        created_ts = u.get("createdTimestamp", 0) / 1000  # ms → s
+
+        # Roles
+        roles_resp = session.get(
+            f"{ADMIN_API}/users/{user_id}/role-mappings/realm",
+            headers=headers(token),
+        )
+        roles_resp.raise_for_status()
+        role_names = [r["name"] for r in roles_resp.json() if not r["name"].startswith("default-")]
+
+        # Last login via user sessions
+        last_login_ts = None
+        try:
+            user_sessions_resp = session.get(
+                f"{ADMIN_API}/users/{user_id}/sessions",
+                headers=headers(token),
+            )
+            if user_sessions_resp.ok:
+                user_sessions = user_sessions_resp.json()
+                if user_sessions:
+                    last_login_ts = max(s.get("lastAccess", 0) / 1000 for s in user_sessions)
+        except Exception:
+            pass
+
+        if last_login_ts is None:
+            # Fall back to offline sessions
+            try:
+                offline_resp = session.get(
+                    f"{ADMIN_API}/users/{user_id}/offline-sessions",
+                    headers=headers(token),
+                )
+                if offline_resp.ok and offline_resp.json():
+                    last_login_ts = max(
+                        s.get("lastAccess", 0) / 1000 for s in offline_resp.json()
+                    )
+            except Exception:
+                pass
+
+        # Determine flags
+        flag = "CLEAN"
+        if not enabled:
+            flag = "DISABLED"
+        elif not role_names:
+            flag = "ORPHANED"
+        elif last_login_ts is not None and last_login_ts < cutoff:
+            flag = "INACTIVE"
+        elif last_login_ts is None:
+            flag = "INACTIVE"  # Never logged in — treat as inactive
+
+        flags_summary[flag] += 1
+
+        last_login_str = (
+            datetime.fromtimestamp(last_login_ts, tz=timezone.utc).strftime("%Y-%m-%d")
+            if last_login_ts else "never"
+        )
+        created_str = datetime.fromtimestamp(created_ts, tz=timezone.utc).strftime("%Y-%m-%d")
+
+        rows.append({
+            "username": username,
+            "email": email,
+            "enabled": enabled,
+            "roles": ", ".join(role_names) if role_names else "(none)",
+            "last_login": last_login_str,
+            "created": created_str,
+            "flag": flag,
+        })
+
+    # Sort: flagged first, then by username
+    flag_order = {"ORPHANED": 0, "INACTIVE": 1, "DISABLED": 2, "CLEAN": 3}
+    rows.sort(key=lambda r: (flag_order[r["flag"]], r["username"]))
+
+    # Print report
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    print(f"\n{'='*100}")
+    print(f"  ACCESS CERTIFICATION REPORT — Realm: {KC_REALM}")
+    print(f"  Generated: {now_str}   Lookback window: {lookback_days} days   Certifier: {KC_USER}")
+    print(f"{'='*100}")
+    print(
+        f"\n{'USERNAME':<20} {'EMAIL':<32} {'EN':<4} {'ROLES':<30} "
+        f"{'LAST LOGIN':<12} {'CREATED':<12} {'FLAG'}"
+    )
+    print("-" * 120)
+
+    for r in rows:
+        flag_marker = "" if r["flag"] == "CLEAN" else f"  *** {r['flag']} ***"
+        print(
+            f"{r['username']:<20} {r['email']:<32} {str(r['enabled'])[:1]:<4} "
+            f"{r['roles']:<30} {r['last_login']:<12} {r['created']:<12} {r['flag']}{flag_marker}"
+        )
+
+    print(f"\n{'─'*120}")
+    print(f"  Summary: {len(rows)} total accounts")
+    print(f"    CLEAN    : {flags_summary['CLEAN']}")
+    print(f"    INACTIVE : {flags_summary['INACTIVE']}  (no login in >{lookback_days}d — review for removal)")
+    print(f"    ORPHANED : {flags_summary['ORPHANED']}  (enabled with no roles — access gap or onboarding error)")
+    print(f"    DISABLED : {flags_summary['DISABLED']}  (offboarded — confirm no active sessions or shared creds)")
+    print(f"\n  Certification action required for: {flags_summary['INACTIVE'] + flags_summary['ORPHANED']} account(s)")
+    print(f"{'='*100}\n")
+
+    audit.info(
+        "CERTIFY realm=%s total=%d inactive=%d orphaned=%d disabled=%d actor=%s lookback_days=%d",
+        KC_REALM, len(rows), flags_summary["INACTIVE"], flags_summary["ORPHANED"],
+        flags_summary["DISABLED"], KC_USER, lookback_days,
+    )
+
+
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def main():
@@ -261,6 +405,13 @@ def main():
     p_report = sub.add_parser("report", help="List all users and roles")
     p_report.add_argument("--days", type=int, default=30, help="Lookback window (informational)")
 
+    # certify
+    p_certify = sub.add_parser("certify", help="Access certification report (ISO 27001 / SOX)")
+    p_certify.add_argument(
+        "--days", type=int, default=90,
+        help="Flag accounts with no login in this many days as INACTIVE (default: 90)",
+    )
+
     args = parser.parse_args()
 
     if not KC_PASS:
@@ -270,7 +421,7 @@ def main():
     session = _session()
     token = get_token(session)
 
-    dispatch = {"joiner": joiner, "mover": mover, "leaver": leaver, "report": report}
+    dispatch = {"joiner": joiner, "mover": mover, "leaver": leaver, "report": report, "certify": certify}
     dispatch[args.command](session, token, args)
 
 
